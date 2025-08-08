@@ -11,6 +11,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/usb/pd.h>
 #include <dt-bindings/leds/common.h>
+#include <dt-bindings/pinctrl/qcom,pmic-gpio.h>
 #include "sm8150.dtsi"
 #include "pm8150.dtsi"
 #include "pm8150b.dtsi"
@@ -692,7 +693,7 @@
 		};
 	};
 	
-	sde_dsi_active: sde_dsi_active {
+	sde_dsi_default: sde_dsi_default {
 		mux {
 			pins = "gpio67";
 			function = "gpio";
@@ -704,7 +705,7 @@
 		};
 	};
 	
-	sde_dsi_suspend: sde_dsi_suspend {
+	sde_dsi_sleep: sde_dsi_sleep {
 		mux {
 			pins = "gpio67";
 			function = "gpio";
@@ -716,7 +717,7 @@
 		};
 	};
 	
-	sde_te_active: sde_te_active {
+	sde_te_default: sde_te_default {
 		mux {
 			pins = "gpio8";
 			function = "mdp_vsync";
@@ -728,7 +729,7 @@
 		};
 	};
 	
-	sde_te_suspend: sde_te_suspend {
+	sde_te_sleep: sde_te_sleep {
 		mux {
 			pins = "gpio8";
 			function = "mdp_vsync";
@@ -803,17 +804,12 @@
 		};
 	};
 	
-	cam_sensor_pmic_active: cam_sensor_pmic_active {
-		mux {
-			pins = "gpio102";
-			function = "gpio";
-		};
-		config {
-			pins = "gpio102";
-			bias-pull-up;
-			output-high;
-			drive-strength = <2>;
-		};
+	cam_sensor_pmic_default: cam_sensor_pmic_default {
+		pins = "gpio102";
+		function = "gpio";
+		bias-pull-up;
+		output-high;
+		drive-strength = <2>;
 	};
 };
 
@@ -1249,8 +1245,8 @@
 		reset-gpios = <&tlmm 67 GPIO_ACTIVE_LOW>;
 		
 		pinctrl-names = "panel_active";
-		pinctrl-0 = <&sde_dsi_active &sde_te_active>;
-		pinctrl-1 = <&sde_dsi_suspend &sde_te_suspend>;
+		pinctrl-0 = <&sde_dsi_default &sde_te_default>;
+		pinctrl-1 = <&sde_dsi_sleep &sde_te_sleep>;
 		
 		port {
 			panel_in: endpoint {
@@ -1290,7 +1286,7 @@
 &i2c0 {
 	status = "okay";
 	clock-frequency = <400000>;
-	/* Renesas IDTP9221 Qi charger (idt,p9221) @ 0 */
+	/* Renesas IDTP9221 Qi charger (idt,p9221) @ 61 */
 };
 
 &spi4 {
@@ -1331,7 +1327,7 @@
 &i2c7 {
 	status = "okay";
 	clock-frequency = <400000>;
-	
+
 	max17201: fuel-gauge@36 {
 		compatible = "maxim,max17201";
 		reg = <0x36>, <0xb>;
@@ -1362,15 +1358,15 @@
 		reg = <0x60>;
 		
 		pinctrl-names = "cam_pmic_en";
-		pinctrl-0 = <&cam_sensor_pmic_active>;
+		pinctrl-0 = <&cam_sensor_pmic_default>;
 		
 		maxim,enable-gpio = <&tlmm 102 GPIO_ACTIVE_HIGH>;
 		
 		regulators {
 			max77826_ldo1: LDO1 {
 				regulator-name = "max77826_ldo1";
-				regulator-min-microvolt = <600000>;
-				regulator-max-microvolt = <2187500>;
+				regulator-min-microvolt = <1100000>;
+				regulator-max-microvolt = <1100000>;
 			};
 			
 			max77826_ldo2: LDO2 {
@@ -1378,11 +1374,11 @@
 				regulator-min-microvolt = <600000>;
 				regulator-max-microvolt = <2187500>;
 			};
-			
+
 			max77826_ldo3: LDO3 {
 				regulator-name = "max77826_ldo3";
-				regulator-min-microvolt = <600000>;
-				regulator-max-microvolt = <2187500>;
+				regulator-min-microvolt = <1050000>;
+				regulator-max-microvolt = <1050000>;
 			};
 			
 			max77826_ldo4: LDO4 {
@@ -1393,20 +1389,20 @@
 			
 			max77826_ldo5: LDO5 {
 				regulator-name = "max77826_ldo5";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3975000>;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
 			};
 			
 			max77826_ldo6: LDO6 {
 				regulator-name = "max77826_ldo6";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3975000>;
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
 			};
 			
 			max77826_ldo7: LDO7 {
 				regulator-name = "max77826_ldo7";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3975000>;
+				regulator-min-microvolt = <2900000>;
+				regulator-max-microvolt = <2900000>;
 			};
 			
 			max77826_ldo8: LDO8 {
@@ -1423,50 +1419,52 @@
 			
 			max77826_ldo10: LDO10 {
 				regulator-name = "max77826_ldo10";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3975000>;
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
 			};
 			
 			max77826_ldo11: LDO11 {
 				regulator-name = "max77826_ldo11";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3975000>;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
 			};
 			
 			max77826_ldo12: LDO12 {
 				regulator-name = "max77826_ldo12";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3975000>;
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
 			};
 			
 			max77826_ldo13: LDO13 {
 				regulator-name = "max77826_ldo13";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3975000>;
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
 			};
 			
 			max77826_ldo14: LDO14 {
 				regulator-name = "max77826_ldo14";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3975000>;
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
 			};
-			
+
 			max77826_ldo15: LDO15 {
 				regulator-name = "max77826_ldo15";
-				regulator-min-microvolt = <800000>;
-				regulator-max-microvolt = <3975000>;
+				regulator-min-microvolt = <1850000>;
+				regulator-max-microvolt = <1850000>;
 			};
 			
 			max77826_buck: BUCK {
 				regulator-name = "max77826_buck";
-				regulator-min-microvolt = <500000>;
-				regulator-max-microvolt = <1800000>;
+				regulator-min-microvolt = <1350000>;
+				regulator-max-microvolt = <1350000>;
+				regulator-always-on;
 			};
 			
 			max77826_buckboost: BUCKBOOST {
 				regulator-name = "max77826_buckboost";
-				regulator-min-microvolt = <2600000>;
-				regulator-max-microvolt = <4187500>;
+				regulator-min-microvolt = <3237500>;
+				regulator-max-microvolt = <4100000>;
+				regulator-always-on;
 			};
 		};
 	};
@@ -1571,3 +1569,237 @@
 // &usb_1_qmpphy_out {
 // 	remote-endpoint = <&pm8150b_typec_mux_in>;
 // };
+
+
+&camss {
+	vdda-phy-supply = <&vreg_l5a_0p88>;
+	vdda-pll-supply = <&vreg_l3c_1p2>;
+
+	status = "okay";
+
+	ports {
+		/* port@0 - cci0_i2c1 - 0x10 - Sony IMX520 (8MP) */
+
+		port@1 {
+			camss_endpoint1: endpoint {
+				clock-lanes = <7>;
+				data-lanes = <0 1 2 3>;
+				remote-endpoint = <&camera_front_ir_ov7251_endpoint>;
+			};
+		};
+	
+		/* port@2 - cci1_i2c1 - 0x1a - Sony IMX481 (16MP) */
+
+		port@3 {
+			camss_endpoint3: endpoint {
+				clock-lanes = <7>;
+				data-lanes = <0 1 2 3>;
+				remote-endpoint = <&camera_rear_imx363_endpoint>;
+			};
+		};
+	};
+};
+
+&cci0 {
+	status = "okay";
+	pinctrl-0 = <&cci0_default &camera_front_mclk0_default &camera_front_ir_mclk1_default>;
+	pinctrl-1 = <&cci0_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+&cci0_i2c0 {
+	camera_front_ir_ov7251: camera@60 {
+                compatible = "ovti,ov7251";
+                reg = <0x60>;
+
+                enable-gpios = <&pm8150l_gpios 3 GPIO_ACTIVE_HIGH>;
+                pinctrl-names = "default";
+                pinctrl-0 = <&camera_front_ir1_ov7251_default>;
+
+                clocks = <&camcc CAM_CC_MCLK1_CLK>;
+                clock-names = "xclk";
+                clock-frequency = <24000000>;
+
+                vdddo-supply = <&max77826_ldo11>;
+                vdda-supply = <&max77826_ldo7>;
+		vddd-supply = <&max77826_buck>;
+
+                port {
+                    camera_front_ir_ov7251_endpoint: endpoint {
+                        clock-lanes = <1>;
+			data-lanes = <0>;
+                        link-frequencies = /bits/ 64 <240000000 319200000>;
+                        remote-endpoint = <&camss_endpoint1>;
+                    };
+                };
+	};
+};
+
+&cci1 {
+	status = "okay";
+	pinctrl-0 = <&cci1_default &camera_rear_mclk2_default>;
+	pinctrl-1 = <&cci1_sleep>;
+	pinctrl-names = "default", "sleep";
+};
+
+
+&cci1_i2c0 {
+	camera_rear_imx363: camera@10 {
+		status = "okay";
+		compatible = "sony,imx363";
+		reg = <0x10>;
+
+		clocks = <&camcc CAM_CC_MCLK2_CLK>;
+		clock-names = "xclk";
+
+		clock-frequency = <24000000>;
+
+		assigned-clocks = <&camcc CAM_CC_MCLK2_CLK>;
+		assigned-clock-rates = <24000000>;
+
+		reset-gpios = <&pm8150l_gpios 9 GPIO_ACTIVE_HIGH>;
+
+		vana-supply = <&max77826_ldo14>;
+		vdig-supply = <&max77826_ldo1>;
+		vio-supply = <&max77826_ldo5>;
+		vaf-supply = <&max77826_ldo12>;
+		vextra0-supply = <&max77826_ldo15>;
+		vextra1-supply = <&max77826_ldo6>;
+		vextra2-supply = <&max77826_buck>;
+		vextra3-supply = <&max77826_buckboost>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&camera_rear_imx363_default>;
+		
+		rotation = <90>;
+		orientation = <1>;
+
+		port {
+			camera_rear_imx363_endpoint: endpoint {
+				// clock-lanes = <1>;
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <321000000 636000000>;
+				remote-endpoint = <&camss_endpoint3>;
+			};
+		};
+	};
+};
+
+&tlmm {
+	camera_front_mclk0_default: camera_front_mclk0_default {
+		pins = "gpio13";
+		function = "cam_mclk";
+		drive-strength = <4>;
+		bias-disable;
+	};
+
+	camera_front_mclk0_sleep: camera_front_mclk0_sleep {
+		pins = "gpio13";
+		function = "cam_mclk";
+		drive-strength = <4>;
+		bias-pull-down;
+	};
+
+	camera_front_ir_mclk1_default: camera_front_ir_mclk1_default {
+		pins = "gpio14";
+		function = "cam_mclk";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	camera_front_ir_mclk1_sleep: camera_front_ir_mclk1_sleep {
+		pins = "gpio14";
+		function = "cam_mclk";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	camera_rear_mclk2_default: camera_rear_mclk2_default {
+		pins = "gpio15";
+		function = "cam_mclk";
+		drive-strength = <4>;
+		bias-disable;
+	};
+
+	camera_rear_mclk2_sleep: camera_rear_mclk2_sleep {
+		pins = "gpio15";
+		function = "cam_mclk";
+		drive-strength = <4>;
+		bias-pull-down;
+	};
+};
+
+&pm8150l_gpios {
+	camera_rear_imx363_default: camera_rear_imx363_default {
+		pins = "gpio9";
+		function = "normal";
+		power-source = <1>;
+		qcom,drive-strength = <PMIC_GPIO_STRENGTH_MED>;
+		bias-disable;
+	};
+
+	camera_rear_imx363_sleep: camera_rear_imx363_sleep {
+		pins = "gpio9";
+		function = "normal";
+		power-source = <1>;
+		qcom,drive-strength = <PMIC_GPIO_STRENGTH_MED>;
+		bias-pull-down;
+	};
+
+	camera_rear_imx481_default: camera_rear_imx481_default {
+		pins = "gpio7";
+		function = "normal";
+		power-source = <1>;
+		qcom,drive-strength = <PMIC_GPIO_STRENGTH_MED>;
+		bias-disable;
+	};
+
+	camera_rear_imx481_sleep: camera_rear_imx481_sleep {
+		pins = "gpio7";
+		function = "normal";
+		power-source = <1>;
+		qcom,drive-strength = <PMIC_GPIO_STRENGTH_MED>;
+		bias-pull-down;
+	};
+
+	camera_front_ir1_ov7251_default: camera_front_ir1_ov7251_default {
+		pins = "gpio3";
+		function = "normal";
+		bias-disable;
+		qcom,drive-strength = <2>;
+	};
+
+	camera_front_ir1_ov7251_sleep: camera_front_ir1_ov7251_sleep {
+		pins = "gpio3";
+		function = "normal";
+		bias-pull-down;
+		qcom,drive-strength = <2>;
+	};
+
+	camera_front_ir2_ov7251_default: camera_front_ir2_ov7251_default {
+		pins = "gpio12";
+		function = "normal";
+		bias-disable;
+		qcom,drive-strength = <2>;
+	};
+
+	camera_front_ir2_ov7251_sleep: camera_front_ir2_ov7251_sleep {
+		pins = "gpio12";
+		function = "normal";
+		bias-pull-down;
+		qcom,drive-strength = <2>;
+	};
+	camera_front_imx520_default: camera_front_imx520_default {
+		pins = "gpio6";
+		function = "normal";
+		bias-disable;
+		qcom,drive-strength = <2>;
+	};
+
+	camera_front_imx520_sleep: camera_front_imx520_sleep {
+		pins = "gpio6";
+		function = "normal";
+		bias-pull-down;
+		qcom,drive-strength = <2>;
+	};
+};
