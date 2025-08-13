@@ -524,15 +524,34 @@ static int qmi_decode_string_elem(const struct qmi_elem_info *ei_array,
 	u32 string_len_sz = 0;
 	const struct qmi_elem_info *temp_ei = ei_array;
 
+	/* Debug: show element info before decoding */
+	pr_info("%s: start decode (dec_level=%d, tlv_len=%u, elem_len=%u, elem_size=%u)\n",
+		 __func__, dec_level, tlv_len,
+		 temp_ei ? temp_ei->elem_len : 0,
+		 temp_ei ? temp_ei->elem_size : 0);
+
 	if (dec_level == 1) {
 		string_len = tlv_len;
+		pr_info("%s: level=1, using tlv_len as string_len=%u\n",
+			 __func__, string_len);
 	} else {
 		string_len_sz = temp_ei->elem_len <= U8_MAX ?
 				sizeof(u8) : sizeof(u16);
+		pr_info("%s: level>1, string_len_sz=%u\n",
+			 __func__, string_len_sz);
+
 		rc = qmi_decode_basic_elem(&string_len, buf_src,
 					   1, string_len_sz);
+		pr_info("%s: decoded string_len=%u from header\n",
+			 __func__, string_len);
+
 		decoded_bytes += rc;
 	}
+
+	/* Debug: log comparison values before checks */
+	pr_info("%s: string_len=%u, elem_len=%u, tlv_len=%u\n",
+		 __func__, string_len, temp_ei->elem_len, tlv_len);
+
 
 	if (string_len >= temp_ei->elem_len) {
 		pr_err("%s: String len %d >= Max Len %d\n",
@@ -546,11 +565,17 @@ static int qmi_decode_string_elem(const struct qmi_elem_info *ei_array,
 
 	rc = qmi_decode_basic_elem(buf_dst, buf_src + decoded_bytes,
 				   string_len, temp_ei->elem_size);
+	pr_info("%s: decoded %d bytes into destination buffer\n",
+		 __func__, rc);
+
 	*((char *)buf_dst + string_len) = '\0';
 	decoded_bytes += rc;
 
+	pr_info("%s: total decoded_bytes=%d\n", __func__, decoded_bytes);
+
 	return decoded_bytes;
 }
+
 
 /**
  * find_ei() - Find element info corresponding to TLV Type

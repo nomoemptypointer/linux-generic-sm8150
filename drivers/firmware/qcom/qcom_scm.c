@@ -1070,16 +1070,17 @@ int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 	size_t dest_sz;
 	size_t src_sz;
 	size_t ptr_sz;
-	int next_vm;
+	int i, b;
 	__le32 *src;
-	int ret, i, b;
+	int ret;
 	u64 srcvm_bits = *srcvm;
+	u64 next_vm = 0; /* fix: keep full 64-bit VMID mask */
 
 	src_sz = hweight64(srcvm_bits) * sizeof(*src);
 	mem_to_map_sz = sizeof(*mem_to_map);
 	dest_sz = dest_cnt * sizeof(*destvm);
 	ptr_sz = ALIGN(src_sz, SZ_64) + ALIGN(mem_to_map_sz, SZ_64) +
-			ALIGN(dest_sz, SZ_64);
+		 ALIGN(dest_sz, SZ_64);
 
 	void *ptr __free(qcom_tzmem) = qcom_tzmem_alloc(__scm->mempool,
 							ptr_sz, GFP_KERNEL);
@@ -1088,11 +1089,21 @@ int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 
 	ptr_phys = qcom_tzmem_to_phys(ptr);
 
+	/* Debug: log parameters before building buffers */
+	dev_err(__scm->dev,
+		"assign_mem: mem=%pa sz=%zu srcvm=0x%016llx dest_cnt=%u\n",
+		&mem_addr, mem_sz, (unsigned long long)*srcvm, dest_cnt);
+	for (i = 0; i < dest_cnt; i++) {
+		dev_err(__scm->dev,
+			"dest[%d]: vmid=%u perm=0x%x\n",
+			i, newvm[i].vmid, newvm[i].perm);
+	}
+
 	/* Fill source vmid detail */
 	src = ptr;
 	i = 0;
 	for (b = 0; b < BITS_PER_TYPE(u64); b++) {
-		if (srcvm_bits & BIT(b))
+		if (srcvm_bits & BIT_ULL(b))
 			src[i++] = cpu_to_le32(b);
 	}
 
@@ -1102,7 +1113,6 @@ int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 	mem_to_map->mem_addr = cpu_to_le64(mem_addr);
 	mem_to_map->mem_size = cpu_to_le64(mem_sz);
 
-	next_vm = 0;
 	/* Fill details of next vmid detail */
 	destvm = ptr + ALIGN(mem_to_map_sz, SZ_64) + ALIGN(src_sz, SZ_64);
 	dest_phys = ptr_phys + ALIGN(mem_to_map_sz, SZ_64) + ALIGN(src_sz, SZ_64);
@@ -1111,15 +1121,25 @@ int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 		destvm->perm = cpu_to_le32(newvm->perm);
 		destvm->ctx = 0;
 		destvm->ctx_size = 0;
-		next_vm |= BIT(newvm->vmid);
+		next_vm |= BIT_ULL(newvm->vmid); /* fix: 64-bit mask */
 	}
+
+	/* Optional: hex dump payloads for debugging */
+	print_hex_dump(KERN_ERR, "assign_mem src: ", DUMP_PREFIX_OFFSET, 16, 1,
+		       src, ALIGN(src_sz, SZ_64), false);
+	print_hex_dump(KERN_ERR, "assign_mem map: ", DUMP_PREFIX_OFFSET, 16, 1,
+		       mem_to_map, ALIGN(mem_to_map_sz, SZ_64), false);
+	print_hex_dump(KERN_ERR, "assign_mem dst: ", DUMP_PREFIX_OFFSET, 16, 1,
+		       ptr + ALIGN(src_sz, SZ_64) + ALIGN(mem_to_map_sz, SZ_64),
+		       ALIGN(dest_sz, SZ_64), false);
 
 	ret = __qcom_scm_assign_mem(__scm->dev, mem_to_map_phys, mem_to_map_sz,
 				    ptr_phys, src_sz, dest_phys, dest_sz);
 	if (ret) {
 		dev_err(__scm->dev,
-			"Assign memory protection call failed %d\n", ret);
-		return -EINVAL;
+			"Assign memory protection call failed %d (srcvm=0x%016llx, next_vm=0x%016llx)\n",
+			ret, (unsigned long long)*srcvm, (unsigned long long)next_vm);
+		return ret; /* propagate actual TZ error */
 	}
 
 	*srcvm = next_vm;
