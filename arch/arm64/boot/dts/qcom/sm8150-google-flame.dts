@@ -1527,17 +1527,17 @@
 
 &remoteproc_adsp {
 	status = "okay";
-	firmware-name = "qcom/sm8150/google/flame/adsp.mdt";
+	firmware-name = "qcom/sm8150/google/flame/adsp.mbn";
 };
 
 &remoteproc_cdsp {
 	status = "okay";
-	firmware-name = "qcom/sm8150/google/flame/cdsp.mdt";
+	firmware-name = "qcom/sm8150/google/flame/cdsp.mbn";
 };
 
 &remoteproc_mpss {
 	status = "okay";
-	firmware-name = "qcom/sm8150/google/flame/modem.mdt";
+	firmware-name = "qcom/sm8150/google/flame/modem.mbn";
 };
 
 &wifi {
@@ -1552,11 +1552,11 @@
 /* Everything below here is partially/fully broken */
 &remoteproc_slpi {
 	status = "disabled";
-	firmware-name = "qcom/sm8150/google/flame/slpi.mdt";
+	firmware-name = "qcom/sm8150/google/flame/slpi.mbn";
 };
 
 // &&remoteproc_venus {
-// 	firmware-name = "qcom/sm8150/google/flame/venus.mdt";
+// 	firmware-name = "qcom/sm8150/google/flame/venus.mbn";
 // 	status = "disabled";
 // };
 
@@ -1571,3 +1571,11 @@
 // &usb_1_qmpphy_out {
 // 	remote-endpoint = <&pm8150b_typec_mux_in>;
 // };
+
+
+&ipa {
+	status = "okay";
+	qcom,gsi-loader = "self";
+	memory-region = <&ipa_fw_mem>;
+	firmware-name = "qcom/sm8150/google/flame/ipa_fws.mbn";
+};
