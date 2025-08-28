@@ -1055,6 +1055,17 @@
 	vccq-max-microamp = <700000>;
 	vccq2-supply = <&vreg_s4a_1p8>;
 	vccq2-max-microamp = <750000>;
+	reset-names = "core_reset";
+	freq-table-hz =
+		<37500000 300000000>,
+		<0 0>,
+		<0 0>,
+		<37500000 300000000>,
+		<37500000 300000000>,
+		<0 0>,
+		<0 0>,
+		<0 0>,
+		<0 0>;
 };
 
 &ufs_mem_phy {
