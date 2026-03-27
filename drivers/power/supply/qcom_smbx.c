@@ -242,6 +242,7 @@ struct smb_chip {
 
 	struct delayed_work status_change_work;
 	int cable_irq;
+	int icl_irq;
 	bool wakeup_enabled;
 
 	struct iio_channel *usb_in_i_chan;
@@ -1065,7 +1066,7 @@ static int smb_probe(struct platform_device *pdev)
 	if (rc < 0)
 		return rc;
 
-	rc = smb_init_irq(chip, &irq, "usbin-icl-change",
+	rc = smb_init_irq(chip, &chip->icl_irq, "usbin-icl-change",
 			   smb_handle_usb_icl_change);
 	if (rc < 0)
 		return rc;
@@ -1107,6 +1108,32 @@ static int smb_probe(struct platform_device *pdev)
 	return 0;
 }
 
+static int smb_suspend(struct device *dev)
+{
+	struct smb_chip *chip = dev_get_drvdata(dev);
+
+	/*
+	 * Disable the usbin-icl-change IRQ during system suspend. This IRQ
+	 * fires continuously (~1-3 Hz) while a charger is connected as the
+	 * input current limit is renegotiated. Its handler calls
+	 * power_supply_changed() which calls pm_stay_awake(), preventing the
+	 * system from staying in s2idle since the associated work item cannot
+	 * run during suspend.
+	 */
+	disable_irq(chip->icl_irq);
+	return 0;
+}
+
+static int smb_resume(struct device *dev)
+{
+	struct smb_chip *chip = dev_get_drvdata(dev);
+
+	enable_irq(chip->icl_irq);
+	return 0;
+}
+
+static DEFINE_SIMPLE_DEV_PM_OPS(smb_pm_ops, smb_suspend, smb_resume);
+
 static const struct of_device_id smb_match_id_table[] = {
 	{ .compatible = "qcom,pmi8998-charger", .data = &pmi8998_match_data },
 	{ .compatible = "qcom,pm660-charger", .data = &pm660_match_data },
@@ -1121,6 +1148,7 @@ static struct platform_driver qcom_spmi_smb = {
 	.driver = {
 		.name = "qcom-smbx-charger",
 		.of_match_table = smb_match_id_table,
+		.pm = pm_sleep_ptr(&smb_pm_ops),
 		},
 };
 
