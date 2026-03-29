@@ -1270,7 +1270,7 @@ int cs35l41_global_enable(struct device *dev, struct regmap *regmap, enum cs35l4
 					int_status, int_status & pup_pdn_mask,
 					1000, 100000);
 		if (ret)
-			dev_err(dev, "Enable(%d) failed: %d\n", enable, ret);
+			dev_warn(dev, "Enable(%d) failed: %d\n", enable, ret);
 
 		/* Clear PUP/PDN status */
 		regmap_write(regmap, CS35L41_IRQ1_STATUS1, pup_pdn_mask);
@@ -1287,7 +1287,7 @@ int cs35l41_global_enable(struct device *dev, struct regmap *regmap, enum cs35l4
 					int_status, int_status & pup_pdn_mask,
 					1000, 100000);
 		if (ret)
-			dev_err(dev, "Enable(%d) failed: %d\n", enable, ret);
+			dev_warn(dev, "Enable(%d) failed: %d\n", enable, ret);
 
 		/* Clear PUP/PDN status */
 		regmap_write(regmap, CS35L41_IRQ1_STATUS1, pup_pdn_mask);
