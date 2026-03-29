@@ -2650,7 +2650,7 @@ static void wcd934x_mbhc_get_result_params(struct wcd934x_codec *wcd934x,
 		usleep_range(5000, 5050);
 
 	if (!c1 || !x1) {
-		dev_err(wcd934x->dev, "%s: Impedance detect ramp error, c1=%d, x1=0x%x\n",
+		dev_dbg(wcd934x->dev, "%s: Impedance detect ramp error, c1=%d, x1=0x%x\n",
 			__func__, c1, x1);
 		goto ramp_down;
 	}
@@ -2843,7 +2843,7 @@ right_ch_impedance:
 		*zr = z1R/1000;
 		wcd934x_wcd_mbhc_qfuse_cal(component, zr, 1);
 	}
-	dev_err(component->dev, "%s: impedance on HPH_R = %d(ohms)\n",
+	dev_info(component->dev, "%s: impedance on HPH_R = %d(ohms)\n",
 		__func__, *zr);
 
 	/* Mono/stereo detection */
