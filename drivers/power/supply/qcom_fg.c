@@ -507,7 +507,18 @@ static int qcom_fg_get_capacity(struct qcom_fg_chip *chip, int *val)
 		cap[0] = cap[0] < cap[1] ? cap[0] : cap[1];
 	}
 
-	*val = DIV_ROUND_CLOSEST((cap[0] - 1) * 98, 0xff - 2) + 1;
+	/*
+	 * The FG register [1, 255] is intentionally scaled to [1%, 99%] to
+	 * avoid reporting 100% prematurely during the constant-voltage
+	 * charging phase when the register may read 0xFF while charging
+	 * continues. Only report 100% when the charger explicitly signals
+	 * FULL, indicating charge termination has occurred.
+	 */
+	if (chip->status == POWER_SUPPLY_STATUS_FULL) {
+		*val = 100;
+	} else {
+		*val = DIV_ROUND_CLOSEST((cap[0] - 1) * 98, 0xff - 2) + 1;
+	}
 
 	return 0;
 }
