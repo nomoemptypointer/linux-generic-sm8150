@@ -6,12 +6,14 @@
 
 #include <linux/fb.h>
 
+#include <drm/drm_connector.h>
 #include <drm/drm_drv.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_fb_helper.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm_framebuffer.h>
 #include <drm/drm_prime.h>
+#include <drm/drm_probe_helper.h>
 
 #include "msm_drv.h"
 #include "msm_gem.h"
@@ -88,6 +90,94 @@ static const struct drm_fb_helper_funcs msm_fbdev_helper_funcs = {
 	.fb_dirty = msm_fbdev_fb_dirty,
 };
 
+/*
+ * msm_fbdev_preallocate - allocate the fbdev scanout buffer at KMS init
+ *
+ * DRM fbdev emulation only allocates its scanout buffer once a connector
+ * reports a mode, so no buffer exists when the driver comes up without a
+ * display.  Allocate it unconditionally here instead, sized from the first
+ * connector mode, and hand it over to msm_fbdev_driver_fbdev_probe() once
+ * fbdev emulation is set up (which can also happen later, on hotplug).
+ */
+int msm_fbdev_preallocate(struct drm_device *dev)
+{
+	struct msm_drm_private *priv = dev->dev_private;
+	struct drm_connector_list_iter conn_iter;
+	struct drm_connector *connector;
+	struct drm_display_mode *mode = NULL;
+	struct drm_framebuffer *fb;
+	struct drm_gem_object *bo;
+	uint64_t paddr;
+	uint32_t format;
+	int ret, pitch;
+
+	if (!priv->kms || !priv->kms->vm || priv->fbdev_fb)
+		return 0;
+
+	mutex_lock(&dev->mode_config.mutex);
+	drm_connector_list_iter_begin(dev, &conn_iter);
+	drm_for_each_connector_iter(connector, &conn_iter) {
+		drm_helper_probe_single_connector_modes(connector, 0, 0);
+		if (!list_empty(&connector->modes)) {
+			mode = list_first_entry(&connector->modes,
+						struct drm_display_mode, head);
+			break;
+		}
+	}
+	drm_connector_list_iter_end(&conn_iter);
+	mutex_unlock(&dev->mode_config.mutex);
+
+	if (!mode) {
+		drm_dbg_kms(dev, "fbdev: no connector mode, deferring allocation\n");
+		return 0;
+	}
+
+	format = drm_mode_legacy_fb_format(32, 24);
+	pitch = align_pitch(mode->hdisplay, 32);
+
+	fb = msm_alloc_stolen_fb(dev, mode->hdisplay, mode->vdisplay,
+				 pitch, format);
+	if (IS_ERR(fb)) {
+		drm_err(dev, "fbdev: failed to allocate %dx%d framebuffer: %pe\n",
+			mode->hdisplay, mode->vdisplay, fb);
+		return PTR_ERR(fb);
+	}
+
+	/*
+	 * Back the buffer with pages now: the framebuffer memory is allocated at
+	 * init instead of on the first fbdev setup.  Drop the temporary pin
+	 * again, so that fbdev emulation can pin it the usual way when it takes
+	 * the buffer over; the pages stay in the willneed LRU in the meantime.
+	 */
+	bo = msm_framebuffer_bo(fb, 0);
+	ret = msm_gem_get_and_pin_iova(bo, priv->kms->vm, &paddr);
+	if (ret) {
+		drm_err(dev, "fbdev: failed to allocate framebuffer memory: %d\n",
+			ret);
+		drm_framebuffer_put(fb);
+		return ret;
+	}
+	msm_gem_unpin_iova(bo, priv->kms->vm);
+
+	priv->fbdev_fb = fb;
+
+	drm_dbg_kms(dev, "fbdev: preallocated %dx%d framebuffer\n",
+		    mode->hdisplay, mode->vdisplay);
+
+	return 0;
+}
+
+void msm_fbdev_release(struct drm_device *dev)
+{
+	struct msm_drm_private *priv = dev->dev_private;
+
+	if (!priv->fbdev_fb)
+		return;
+
+	drm_framebuffer_put(priv->fbdev_fb);
+	priv->fbdev_fb = NULL;
+}
+
 int msm_fbdev_driver_fbdev_probe(struct drm_fb_helper *helper,
 				 struct drm_fb_helper_surface_size *sizes)
 {
@@ -107,8 +197,24 @@ int msm_fbdev_driver_fbdev_probe(struct drm_fb_helper *helper,
 			sizes->fb_width, sizes->fb_height);
 
 	pitch = align_pitch(sizes->surface_width, sizes->surface_bpp);
-	fb = msm_alloc_stolen_fb(dev, sizes->surface_width,
-			sizes->surface_height, pitch, format);
+
+	/*
+	 * Take over the buffer allocated at KMS init, if it fits the mode fbdev
+	 * picked; otherwise fall back to allocating one for this mode.
+	 */
+	fb = priv->fbdev_fb;
+	priv->fbdev_fb = NULL;
+	if (fb && (fb->width != sizes->surface_width ||
+		   fb->height != sizes->surface_height ||
+		   fb->pitches[0] != pitch ||
+		   fb->format->format != format)) {
+		drm_framebuffer_put(fb);
+		fb = NULL;
+	}
+
+	if (!fb)
+		fb = msm_alloc_stolen_fb(dev, sizes->surface_width,
+				sizes->surface_height, pitch, format);
 
 	if (IS_ERR(fb)) {
 		DRM_DEV_ERROR(dev->dev, "failed to allocate fb\n");

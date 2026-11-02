@@ -90,6 +90,8 @@ static int msm_drm_uninit(struct device *dev, const struct component_ops *gpu_op
 	msm_perf_debugfs_cleanup(priv);
 	msm_rd_debugfs_cleanup(priv);
 
+	msm_fbdev_release(ddev);
+
 	if (priv->kms)
 		msm_drm_kms_uninit(dev);
 
