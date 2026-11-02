@@ -89,6 +89,15 @@ else
   KBUILD_CFLAGS += $(call cc-option,-mbranch-protection=none)
 endif
 
+ifdef CONFIG_CC_IS_CLANG
+KBUILD_CFLAGS += $(call cc-option,-mllvm=-polly \
+                 -mllvm=-polly-ast-use-context \
+                 -mllvm=-polly-invariant-load-hoisting \
+                 -mllvm=-polly-loopfusion-greedy \
+                 -mllvm=-polly-run-inliner \
+                 -mllvm=-polly-vectorizer=stripmine)
+endif
+
 # Tell the assembler to support instructions from the latest target
 # architecture.
 #
