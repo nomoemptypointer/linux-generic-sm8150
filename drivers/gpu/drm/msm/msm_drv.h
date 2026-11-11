@@ -77,12 +77,6 @@ struct msm_drm_private {
 	struct msm_kms *kms;
 	int (*kms_init)(struct drm_device *dev);
 
-	/*
-	 * fbdev scanout buffer, allocated at KMS init whether or not a display
-	 * is connected.  Handed over to fbdev emulation when it is set up.
-	 */
-	struct drm_framebuffer *fbdev_fb;
-
 	/* subordinate devices, if present: */
 	struct platform_device *gpu_pdev;
 
@@ -274,20 +268,9 @@ struct drm_framebuffer * msm_alloc_stolen_fb(struct drm_device *dev,
 #ifdef CONFIG_DRM_MSM_KMS_FBDEV
 int msm_fbdev_driver_fbdev_probe(struct drm_fb_helper *helper,
 				 struct drm_fb_helper_surface_size *sizes);
-int msm_fbdev_preallocate(struct drm_device *dev);
-void msm_fbdev_release(struct drm_device *dev);
 #define MSM_FBDEV_DRIVER_OPS \
 	.fbdev_probe = msm_fbdev_driver_fbdev_probe
 #else
-static inline int msm_fbdev_preallocate(struct drm_device *dev)
-{
-	return 0;
-}
-
-static inline void msm_fbdev_release(struct drm_device *dev)
-{
-}
-
 #define MSM_FBDEV_DRIVER_OPS \
 	.fbdev_probe = NULL
 #endif

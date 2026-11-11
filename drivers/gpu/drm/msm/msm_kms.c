@@ -386,9 +386,5 @@ void msm_drm_kms_post_init(struct device *dev)
 	struct drm_device *ddev = priv->dev;
 
 	drm_kms_helper_poll_init(ddev);
-
-	/* Always allocate framebuffer memory, even without a display. */
-	msm_fbdev_preallocate(ddev);
-
 	drm_client_setup(ddev, NULL);
 }
