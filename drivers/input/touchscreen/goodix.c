@@ -48,7 +48,7 @@
 #define MAX_CONTACTS_LOC		5
 #define TRIGGER_LOC			6
 
-#define GOODIX_POLL_INTERVAL_MS		8	/* 8ms = 120fps */
+#define GOODIX_POLL_INTERVAL_MS		17	/* 17ms = 60fps */
 
 /* Our special handling for GPIO accesses through ACPI is x86 specific */
 #if defined CONFIG_X86 && defined CONFIG_ACPI
