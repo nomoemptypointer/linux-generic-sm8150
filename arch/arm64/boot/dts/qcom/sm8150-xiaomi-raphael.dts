@@ -1076,6 +1076,7 @@
 
 &wifi {
 	status = "okay";
+	qcom,snoc-host-cap-8bit-quirk;
 	qcom,snoc-host-cap-skip-quirk;
 
 	vdd-0.8-cx-mx-supply = <&vdda_wcss_pll>;
